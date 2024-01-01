@@ -2,7 +2,7 @@
 
 const dev = {
   app: {
-    port: process.env.PORT || 3052
+    port: process.env.PORT || 3055
   },
   db: {
     host: process.env.DEV_DB_HOST || 'localhost',
