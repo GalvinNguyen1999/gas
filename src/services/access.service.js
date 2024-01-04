@@ -4,6 +4,7 @@ const shopModel = require('../models/shop.model')
 const KeyTokenService = require('../services/keyToken.service')
 const { createTokenPair } = require('../auth/authUtils')
 const { getInformation } = require('../utils')
+const { BadRequestError } = require('../core/error.message')
 
 const roleShop = {
   SHOP: 'SHOP',
@@ -14,70 +15,40 @@ const roleShop = {
 
 class AccessService {
   static signup = async ({ name, email, password }) => {
-    try {
-      const holderShop = await shopModel.findOne({ email }).lean()
-      if (holderShop) {
-        return {
-          code: 'xxx',
-          message: 'Shop already exists'
-        }
-      }
-     
-      const passwordHash = await bcrypt.hash(password, 10)
-      const newShop = await shopModel.create({
-        name,
-        email,
-        password: passwordHash,
-        roles: [roleShop.SHOP]
+    const holderShop = await shopModel.findOne({ email }).lean()
+    if (holderShop) throw new BadRequestError('Shop already registered!')
+
+    const passwordHash = await bcrypt.hash(password, 10)
+    const newShop = await shopModel.create({
+      name,
+      email,
+      password: passwordHash,
+      roles: [roleShop.SHOP]
+    })
+
+    if (newShop) {
+      const privateKey = crypto.randomBytes(64).toString('hex')
+      const publicKey = crypto.randomBytes(64).toString('hex')
+
+      const keyStore = await KeyTokenService.createKeyToken({
+        userId: newShop._id,
+        publicKey,
+        privateKey
       })
-      if (newShop) {
-        // create private key, public key
-        // const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
-        //   modulusLength: 4096,
-        //   publicKeyEncoding: {
-        //     type: 'pkcs1',
-        //     format: 'pem'
-        //   },
-        //   privateKeyEncoding: {
-        //     type: 'pkcs1',
-        //     format: 'pem'
-        //   }
-        // })
-        const privateKey = crypto.randomBytes(64).toString('hex')
-        const publicKey = crypto.randomBytes(64).toString('hex')
-        const keyStore = await KeyTokenService.createKeyToken({
-          userId: newShop._id,
-          publicKey,
-          privateKey
-        })
-        if (!keyStore) {
-          return {
-            code: 'xxx',
-            message: 'keyStore error',
-          }
-        }
-        const tokens = await createTokenPair({ userId: newShop._id, email }, publicKey, privateKey)
+      if (!keyStore) throw new BadRequestError('Error on create key token store!')
 
-        return {
-          code: 201,
-          metadata: {
-            shop: getInformation({ fields: ['_id', 'name', 'email'], object: newShop }),
-            tokens
-          }
-        }
-      }
+      const tokens = await createTokenPair({ userId: newShop._id, email }, publicKey, privateKey)
 
       return {
-        code: 200,
-        metadata: null
-      }
-    } catch (error) {
-      return {
-        code: 'xxx',
-        message: error.message,
-        status: 'Error'
+        code: 201,
+        metadata: {
+          shop: getInformation({ fields: ['_id', 'name', 'email'], object: newShop }),
+          tokens
+        }
       }
     }
+
+    return { code: 200, metadata: null }
   }
 }
 
