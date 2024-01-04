@@ -18,13 +18,13 @@ class ErrorResponse extends Error {
 }
 
 class ConflictRequestError extends ErrorResponse {
-  constructor (message = reasonStatusCode.CONFLICT, status = statusCode.FORBIDDEN) {
+  constructor (message = reasonStatusCode.CONFLICT, status = statusCode.CONFLICT) {
     super(message, status)
   }
 }
 
 class BadRequestError extends ErrorResponse {
-  constructor (message = reasonStatusCode.CONFLICT, status = statusCode.FORBIDDEN) {
+  constructor (message = reasonStatusCode.FORBIDDEN, status = statusCode.FORBIDDEN) {
     super(message, status)
   }
 }
