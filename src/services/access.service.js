@@ -16,16 +16,19 @@ const roleShop = {
 
 class AccessService {
   static signup = async ({ name, email, password }) => {
+    console.log('code chay vao day')
     const holderShop = await shopModel.findOne({ email }).lean()
     if (holderShop) throw new BadRequestError('Shop already registered!')
 
     const passwordHash = await bcrypt.hash(password, 10)
+    console.log("🚀 ~ file: access.service.js:23 ~ AccessService ~ signup= ~ passwordHash:", passwordHash)
     const newShop = await shopModel.create({
       name,
       email,
       password: passwordHash,
       roles: [roleShop.SHOP]
     })
+    console.log("🚀 ~ file: access.service.js:30 ~ AccessService ~ signup= ~ newShop:", newShop)
 
     if (newShop) {
       const privateKey = crypto.randomBytes(64).toString('hex')
@@ -80,6 +83,11 @@ class AccessService {
       shop: getInformation({ fields: ['_id', 'name', 'email'], object: foundShop }),
       tokens
     }
+  }
+
+  static logout = async (keyStore) => {
+    const removeKeyStore = await KeyTokenService.removeKeyById(keyStore._id)
+    return removeKeyStore
   }
 }
 
